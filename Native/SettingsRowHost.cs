@@ -409,14 +409,14 @@ internal sealed class SettingsRowHost {
         rt.sizeDelta = new Vector2(width, height);
     }
 
-    /// <summary>Stretches a control from the content's left edge to the right edge minus the scrollbar reserve.</summary>
+    /// <summary>Stretches a control from the content's left edge to the right edge minus the scrollbar reserve and the same right margin the Info rows keep, so both end at the same x.</summary>
     private void StretchControlRight(RectTransform? rt, float height) {
         if (rt == null) return;
         rt.anchorMin = new Vector2(0f, 0.5f);
         rt.anchorMax = new Vector2(1f, 0.5f);
         rt.pivot = new Vector2(0f, 0.5f);
         rt.offsetMin = new Vector2(_contentLeft, -height * 0.5f);
-        rt.offsetMax = new Vector2(-ScrollbarReserve, height * 0.5f);
+        rt.offsetMax = new Vector2(-(ScrollbarReserve + InfoRightMargin), height * 0.5f);
     }
 
     private void AlignControlLeft(RectTransform? rt) {
