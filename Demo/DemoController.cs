@@ -336,16 +336,6 @@ internal sealed class DemoController {
     private void BuildNativeDemo(UiScope scope) {
         _scoreboard = scope.Native.Scoreboard.AddColumn("uikit.demo.score", "UiKit demo column");
         RefreshDemoScoreboard();
-
-        var tree = FindDemoTree();
-        if (tree == null) {
-            UiLog.Info("demo: no game tech tree is available, the Rules civilization demo is skipped");
-            return;
-        }
-
-        #pragma warning disable CS0618 // the demo shows the standalone path
-scope.Native.Rules.AddCivilization("uikit.demo.civ", "UiKit civilization", () => tree, 0);
-#pragma warning restore CS0618
     }
 
     private void RefreshDemoScoreboard() {
@@ -363,20 +353,6 @@ scope.Native.Rules.AddCivilization("uikit.demo.civ", "UiKit civilization", () =>
             UiLog.OnceError("demo:scoreboard", "demo scoreboard values failed: " + e);
         }
         column.SetValues(values);
-    }
-
-    private static GameTechTree? FindDemoTree() {
-        try {
-            foreach (var candidate in UnityEngine.Resources.FindObjectsOfTypeAll(Il2CppType.Of<GameTechnologies>())) {
-                var technologies = candidate?.TryCast<GameTechnologies>();
-                if (technologies == null) continue;
-                return technologies.TechTree(GameCivilization.EUROPE);
-            }
-        }
-        catch (Exception e) {
-            UiLog.OnceError("demo:tech-tree", "could not read a game tech tree: " + e);
-        }
-        return null;
     }
 
     private void BuildProbe(Layer layer, string text, Vector2 position, OrnamentStyle ornament) {

@@ -6,7 +6,6 @@ using UnityEngine;
 using GameCivilization = DiceKingdoms.Interface.Civilization;
 using GameDropdown = DiceKingdoms.Interface.Dropdown;
 using GameRules = DiceKingdoms.Meta.Rules;
-using GameTechTree = DiceKingdoms.Game.TechTree;
 
 namespace DiceModders.UiKit.Native;
 
@@ -17,7 +16,6 @@ namespace DiceModders.UiKit.Native;
 public sealed class RulesCivilizationHandle : NativeHandle {
     private readonly Action<RulesCivilizationHandle>? _onDispose;
     private string _name;
-    private Func<GameTechTree?>? _techTree;
     private GameRules? _rules;
     private GameDropdown? _dropdown;
     private TMP_Dropdown? _tmp;
@@ -26,15 +24,12 @@ public sealed class RulesCivilizationHandle : NativeHandle {
     private int _valueIndex = -1;
 
     internal RulesCivilizationHandle(UiScope scope, NativeUiHost host, string key, int civilizationId, string name,
-                                     Func<GameTechTree?>? techTree, int skinsLike,
                                      Action<RulesCivilizationHandle>? onDispose)
         : base(scope, host, key) {
         _onDispose = onDispose;
         Key = key;
         CivilizationId = civilizationId;
         _name = name;
-        _techTree = techTree;
-        SkinsLike = Mathf.Clamp(skinsLike, 0, 4);
     }
 
     /// <summary>Stable key supplied by the mod.</summary>
@@ -45,12 +40,6 @@ public sealed class RulesCivilizationHandle : NativeHandle {
 
     /// <summary>Text currently shown in the Rules drop-down.</summary>
     public string Name => _name;
-
-    /// <summary>Built-in civilization whose biome and visuals this one borrows (0..4).</summary>
-    public int SkinsLike { get; }
-
-    /// <summary>True for an entry that only draws a drop-down option: no tech tree and no skin override.</summary>
-    internal bool EntryOnly { get; init; }
 
     /// <summary>Changes the drop-down label without changing the stable id.</summary>
     public void SetName(string? name) {
@@ -68,18 +57,6 @@ public sealed class RulesCivilizationHandle : NativeHandle {
             _optionIndex = index;
             _valueIndex = index;
         }, OwnerId);
-    }
-
-    /// <summary>Changes the tech-tree provider used by the game's lookup hook.</summary>
-    public void SetTechTree(Func<GameTechTree?>? techTree) {
-        if (!IsDisposed) _techTree = techTree;
-    }
-
-    internal bool TryGetTree(out GameTechTree? tree) {
-        tree = null;
-        if (_techTree == null) return false;
-        tree = UiGuard.Func("rules.tech-tree", _techTree, OwnerId);
-        return tree != null;
     }
 
     internal override void Refresh(NativeScene scene) {

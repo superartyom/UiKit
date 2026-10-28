@@ -310,51 +310,6 @@ internal sealed class NativeUiHost {
         RefreshMatching(handle => handle is RulesCivilizationHandle);
     }
 
-    internal RulesCivilizationHandle? FindCivilizationByKey(string key) {
-        for (int i = 0; i < _bindings.Count; i++) {
-            if (_bindings[i] is RulesCivilizationHandle civ && !civ.IsDisposed &&
-                string.Equals(civ.Key, key, StringComparison.Ordinal)) return civ;
-        }
-        return null;
-    }
-
-    /// <summary>Stable id from a key, advanced past ids used by other keys.</summary>
-    internal int AllocateCivilizationId(string key) {
-        uint hash = 2166136261;
-        for (int i = 0; i < key.Length; i++) {
-            hash ^= key[i];
-            hash *= 16777619;
-        }
-
-        int id = 1000 + (int)(hash % 1_000_000_000u);
-        while (FindCivilizationById(id) is { } taken && !string.Equals(taken.Key, key, StringComparison.Ordinal)) {
-            id++;
-        }
-        return id;
-    }
-
-    internal bool TryGetRulesTree(int id, out GameTechTree? tree) {
-        tree = null;
-        for (int i = 0; i < _bindings.Count; i++) {
-            if (_bindings[i] is not RulesCivilizationHandle civ || civ.IsDisposed || civ.EntryOnly || civ.CivilizationId != id) continue;
-            if (civ.TryGetTree(out var candidate) && candidate != null) {
-                tree = candidate;
-                return true;
-            }
-        }
-        return false;
-    }
-
-    internal bool TryGetSkinsLike(int id, out int skinsLike) {
-        for (int i = 0; i < _bindings.Count; i++) {
-            if (_bindings[i] is not RulesCivilizationHandle civ || civ.IsDisposed || civ.EntryOnly || civ.CivilizationId != id) continue;
-            skinsLike = civ.SkinsLike;
-            return true;
-        }
-        skinsLike = 0;
-        return false;
-    }
-
     internal RulesCivilizationHandle? FindCivilizationById(int id) {
         for (int i = 0; i < _bindings.Count; i++) {
             if (_bindings[i] is RulesCivilizationHandle civ && !civ.IsDisposed && civ.CivilizationId == id) return civ;

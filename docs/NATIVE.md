@@ -51,8 +51,6 @@ The hooks are installed by `NativeHooks.Install`. Mandatory hooks are installed 
 
 - `ScoreboardRow.Start` — announces a row after its own cells are built.
 - `Rules.Awake` / `Rules.OnEnable` — announces the Rules screen.
-- `Technologies.TechTree` — answers lookups for mod civilizations whose tree is supplied by a mod.
-- `PlayerSkins.Civilization` setter — maps a mod civilization's stable id to borrowed built-in visuals.
 
 ### Optional hook groups
 
@@ -185,17 +183,14 @@ text polling.
 ## Rules civilizations
 
 `RulesCivilizationHandle` appends an option to the game's civilization dropdown and a boxed value to the parallel
-`values` array.
+`values` array. UiKit only draws the option for a civilization number that another system owns; it does not allocate
+numbers, answer tech tree lookups or change skins.
 
-- The stable `Key` is hashed to a civilization id (`AllocateCivilizationId`).
-- `SkinsLike` clamps to built-in civilization indices `0..4`.
-- The `TechTree` provider is consulted by the `Technologies.TechTree` prefix for that id.
-- The `PlayerSkins.Civilization` prefix maps the custom id to the borrowed visuals.
 - `DetachCore` removes both the dropdown option and the corresponding value, handling reordered/destroyed options
   defensively.
+- Entries are keyed by civilization number; a number already shown by another scope is rejected.
 
-`SetName` updates the displayed option without changing the stable id. `SetTechTree` replaces the provider.
-
+`SetName` updates the displayed option without changing the number.
 ## Lifetime components and registries
 
 Injected MonoBehaviours expose only Unity methods and supported Unity types. Managed-only bindings are kept outside

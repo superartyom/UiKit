@@ -64,27 +64,3 @@ public sealed class ScoreboardColumnSpec {
     public string? Tooltip { get; init; }
     public Sprite? Icon { get; init; }
 }
-
-/// <summary>
-/// Description of a civilization to append to the Rules screen. The library derives a stable id from
-/// <see cref="Key"/>, so every player and save sees the same value in multiplayer.
-/// </summary>
-public sealed class RulesCivilizationSpec {
-    /// <summary>Stable key such as <c>authorname.civname</c>. Required.</summary>
-    public string? Key { get; init; }
-
-    /// <summary>Text shown in the Rules drop-down. Required.</summary>
-    public string? Name { get; init; }
-
-    /// <summary>
-    /// Returns the civilization's tech tree. The game looks trees up in its own list and throws for unknown
-    /// civilizations, so this provider is used for every lookup until the mod adds the tree to the game itself.
-    /// </summary>
-    public Func<TechTree?>? TechTree { get; init; }
-
-    /// <summary>
-    /// Built-in civilization whose biome and visual caches are borrowed (0 Europe, 1 Middle East, 2 Viking,
-    /// 3 Ancient, 4 Maya). The registered civilization keeps its own id.
-    /// </summary>
-    public int SkinsLike { get; init; }
-}

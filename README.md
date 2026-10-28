@@ -56,7 +56,7 @@ A mod creates a `UiScope`, builds content through `scope.Custom`, and registers 
 | Area | What you get |
 |---|---|
 | Managed UI | Windows, rows, columns, grids, scrolling, text, images, buttons, toggles, sliders and dropdowns |
-| Native integrations | Top-bar buttons, Settings tabs and blocks, scoreboard columns and Rules civilizations |
+| Native integrations | Top-bar buttons, Settings tabs and blocks, scoreboard columns and Rules civilization entries |
 | Native look | Game button/slider/dropdown/settings skins when available, with managed fallbacks for managed widgets |
 | Lifecycle | Stable handles, scene-safe reattachment, `WhenReady`, scope disposal and idempotent cleanup |
 | Input | Pointer events, drag support, fullscreen windows and wheel scrolling |
@@ -631,34 +631,20 @@ column is stable across scene changes; rows without a cached value show an empty
 
 ### Rules civilizations
 
-Rules civilizations are appended to the game's Rules dropdown. The stable `Key` is hashed into a civilization id, so
-all players in a multiplayer game see the same id.
+`Rules.AddCivilization(id, name)` appends an option to the game's Rules civilization dropdown. UiKit only draws and
+removes the option. It does not allocate the number, provide a tech tree or change skins: the system that owns the
+civilization (its number, tech tree, skins and network sync) registers it elsewhere and passes the number here.
 
 ```csharp
-var civ = ui.Native.Rules.Add(new RulesCivilizationSpec {
-    Key = "author.my-mod.civ",
-    Name = "My Civilization",
-    SkinsLike = 0,
-    TechTree = () => myTechTree,
-});
+var entry = ui.Native.Rules.AddCivilization(civilizationId, "My Civilization");
 
-civ?.SetName("My Civilization MK II");
-civ?.SetTechTree(() => updatedTree);
+entry?.SetName("My Civilization MK II");
+entry?.Dispose();   // removes the option again
 ```
 
-`SkinsLike` accepts `0`..`4` and selects the built-in biome/visual set to borrow:
-
-| Value | Built-in civilization |
-|---|---|
-| `0` | Europe |
-| `1` | Middle East |
-| `2` | Viking |
-| `3` | Ancient |
-| `4` | Maya |
-
-`RulesApi.AddCivilization(key, name, techTree, skinsLike)` is the direct equivalent of `Add(spec)`. The handle exposes
-`Key`, `CivilizationId`, `Name` and `SkinsLike`.
-
+The number must be above the built-in civilizations (`0`..`4`). Selecting an option for a number that nothing else has
+registered makes the game fail when it looks up that civilization, so only add entries for civilizations that exist.
+The handle exposes `CivilizationId` and `Name`.
 ### Native handle lifecycle
 
 Native handles are never replaced; their attachment state changes.
@@ -701,7 +687,6 @@ The demo includes:
 - a custom Settings tab;
 - blocks on built-in Settings pages;
 - a scoreboard column;
-- a Rules civilization when a game tech tree is available.
 
 The same actions are available from code:
 

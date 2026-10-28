@@ -21,7 +21,6 @@ namespace DiceModders.UiKit.Native;
 internal static class NativeHooks {
     private static Harmony? _harmony;
     private static UiKitRuntime? _runtime;
-    private static bool _busySkins;
 
     public static void Install(UiKitRuntime runtime) {
         if (_harmony != null) return;
@@ -33,8 +32,6 @@ internal static class NativeHooks {
             harmony.PatchAll(typeof(ScoreboardRowStartPatch));
             harmony.PatchAll(typeof(RulesAwakePatch));
             harmony.PatchAll(typeof(RulesEnablePatch));
-            harmony.PatchAll(typeof(TechTreeLookupPatch));
-            harmony.PatchAll(typeof(PlayerSkinsCivilizationPatch));
             _harmony = harmony;
 
             // Optional groups are installed independently: one game update cannot disable the other integrations.
@@ -64,7 +61,6 @@ internal static class NativeHooks {
         var harmony = _harmony;
         _harmony = null;
         _runtime = null;
-        _busySkins = false;
         if (harmony == null) return;
 
         try { harmony.UnpatchSelf(); }
@@ -121,47 +117,6 @@ internal static class NativeHooks {
         try { _runtime?.NativeUi.OnScoreboardRowChanged(row); }
         catch (Exception e) { UiLog.OnceError("scoreboard:island", "scoreboard island hook failed: " + e); }
     }
-
-    internal static bool TechTreePrefix(GameCivilization civilization, ref GameTechTree? result) {
-        try {
-            var runtime = _runtime;
-            if (runtime != null && runtime.NativeUi.TryGetRulesTree((int)civilization, out var tree) && tree != null) {
-                result = tree;
-                return false;
-            }
-        }
-        catch (Exception e) {
-            UiLog.OnceError("rules:tree", "tech tree hook failed: " + e);
-        }
-        return true;
-    }
-
-    internal static bool SkinsPrefix(GamePlayerSkins instance, GameCivilization value) {
-        if (_busySkins) return true;
-
-        int id = (int)value;
-        if (id is >= 0 and <= 4) return true;
-
-        try {
-            var runtime = _runtime;
-            if (runtime == null || !runtime.NativeUi.TryGetSkinsLike(id, out int like)) return true;
-
-            _busySkins = true;
-            try {
-                instance.Civilization = (GameCivilization)like;
-                instance.civilization = value;
-            }
-            finally {
-                _busySkins = false;
-            }
-            return false;
-        }
-        catch (Exception e) {
-            _busySkins = false;
-            UiLog.OnceError("rules:skins", "civilization skin hook failed: " + e);
-        }
-        return true;
-    }
 }
 
 [HarmonyPatch(typeof(GameScoreboardRow), "Start")]
@@ -198,20 +153,6 @@ internal static class RulesAwakePatch {
 internal static class RulesEnablePatch {
     [HarmonyPostfix]
     public static void Postfix(GameRules __instance) => NativeHooks.RulesOpened(__instance);
-}
-
-[HarmonyPatch(typeof(GameTechnologies), "TechTree")]
-internal static class TechTreeLookupPatch {
-    [HarmonyPrefix]
-    public static bool Prefix(GameCivilization civilization, ref GameTechTree? __result)
-        => NativeHooks.TechTreePrefix(civilization, ref __result);
-}
-
-[HarmonyPatch(typeof(GamePlayerSkins), "Civilization", MethodType.Setter)]
-internal static class PlayerSkinsCivilizationPatch {
-    [HarmonyPrefix]
-    public static bool Prefix(GamePlayerSkins __instance, GameCivilization value)
-        => NativeHooks.SkinsPrefix(__instance, value);
 }
 
 [HarmonyPatch(typeof(GameSettingSet), "GenerateElements")]
