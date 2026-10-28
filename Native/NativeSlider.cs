@@ -13,7 +13,7 @@ namespace DiceModders.UiKit.Native;
 /// value text. The setting binding is destroyed before the clone wakes up, so nothing is written to the game's settings.
 /// </summary>
 internal sealed class NativeSlider {
-    private const float ValueWidth = 64f;
+    private const float ValueWidth = 44f;
     private const float ValueGap = 8f;
 
     public RectTransform? Rt { get; private set; }
@@ -144,7 +144,7 @@ internal sealed class NativeSlider {
             labelRt.pivot = new Vector2(0f, 0.5f);
             labelRt.anchoredPosition = Vector2.zero;
             labelRt.sizeDelta = new Vector2(ValueWidth, 32f);
-            label.alignment = TextAlignmentOptions.Right;
+            label.alignment = TextAlignmentOptions.Left;
         }
 
         var sliderRt = slider != null ? slider.GetComponent<RectTransform>() : null;

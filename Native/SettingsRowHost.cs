@@ -416,7 +416,7 @@ internal sealed class SettingsRowHost {
         rt.anchorMax = new Vector2(1f, 0.5f);
         rt.pivot = new Vector2(0f, 0.5f);
         rt.offsetMin = new Vector2(_contentLeft, -height * 0.5f);
-        rt.offsetMax = new Vector2(-(ScrollbarReserve + InfoRightMargin), height * 0.5f);
+        rt.offsetMax = new Vector2(-(ScrollbarReserve + 2f * InfoRightMargin), height * 0.5f);
     }
 
     private void AlignControlLeft(RectTransform? rt) {
