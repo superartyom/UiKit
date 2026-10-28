@@ -343,7 +343,9 @@ internal sealed class DemoController {
             return;
         }
 
-        scope.Native.Rules.AddCivilization("uikit.demo.civ", "UiKit civilization", () => tree, 0);
+        #pragma warning disable CS0618 // the demo shows the standalone path
+scope.Native.Rules.AddCivilization("uikit.demo.civ", "UiKit civilization", () => tree, 0);
+#pragma warning restore CS0618
     }
 
     private void RefreshDemoScoreboard() {

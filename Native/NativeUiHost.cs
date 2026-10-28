@@ -336,7 +336,7 @@ internal sealed class NativeUiHost {
     internal bool TryGetRulesTree(int id, out GameTechTree? tree) {
         tree = null;
         for (int i = 0; i < _bindings.Count; i++) {
-            if (_bindings[i] is not RulesCivilizationHandle civ || civ.IsDisposed || civ.CivilizationId != id) continue;
+            if (_bindings[i] is not RulesCivilizationHandle civ || civ.IsDisposed || civ.EntryOnly || civ.CivilizationId != id) continue;
             if (civ.TryGetTree(out var candidate) && candidate != null) {
                 tree = candidate;
                 return true;
@@ -347,7 +347,7 @@ internal sealed class NativeUiHost {
 
     internal bool TryGetSkinsLike(int id, out int skinsLike) {
         for (int i = 0; i < _bindings.Count; i++) {
-            if (_bindings[i] is not RulesCivilizationHandle civ || civ.IsDisposed || civ.CivilizationId != id) continue;
+            if (_bindings[i] is not RulesCivilizationHandle civ || civ.IsDisposed || civ.EntryOnly || civ.CivilizationId != id) continue;
             skinsLike = civ.SkinsLike;
             return true;
         }
@@ -355,7 +355,7 @@ internal sealed class NativeUiHost {
         return false;
     }
 
-    private RulesCivilizationHandle? FindCivilizationById(int id) {
+    internal RulesCivilizationHandle? FindCivilizationById(int id) {
         for (int i = 0; i < _bindings.Count; i++) {
             if (_bindings[i] is RulesCivilizationHandle civ && !civ.IsDisposed && civ.CivilizationId == id) return civ;
         }

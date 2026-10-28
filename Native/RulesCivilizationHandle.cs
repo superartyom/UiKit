@@ -49,6 +49,9 @@ public sealed class RulesCivilizationHandle : NativeHandle {
     /// <summary>Built-in civilization whose biome and visuals this one borrows (0..4).</summary>
     public int SkinsLike { get; }
 
+    /// <summary>True for an entry that only draws a drop-down option: no tech tree and no skin override.</summary>
+    internal bool EntryOnly { get; init; }
+
     /// <summary>Changes the drop-down label without changing the stable id.</summary>
     public void SetName(string? name) {
         if (IsDisposed || string.IsNullOrWhiteSpace(name)) return;
