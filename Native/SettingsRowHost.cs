@@ -209,9 +209,10 @@ internal sealed class SettingsRowHost {
         });
         view.Slider = slider;
 
-        float width = Mathf.Max(120f, AvailableWidth(content) - ScrollbarReserve);
-        SetControlSize(slider.Rt, width, slider.Height);
-        AlignControlLeft(slider.Rt);
+        // Follow the row's real width: a width measured at build time is wrong while the row is not laid out yet,
+        // and a slider that starts after the label column then runs over the scrollbar.
+        SetControlSize(slider.Rt, 120f, slider.Height);
+        StretchControlRight(slider.Rt, slider.Height);
     }
 
     private void BuildDropdown(SettingsRowHandle row, RectTransform content, SettingsRowView view) {
@@ -406,6 +407,16 @@ internal sealed class SettingsRowHost {
             layout.flexibleHeight = 0f;
         }
         rt.sizeDelta = new Vector2(width, height);
+    }
+
+    /// <summary>Stretches a control from the content's left edge to the right edge minus the scrollbar reserve.</summary>
+    private void StretchControlRight(RectTransform? rt, float height) {
+        if (rt == null) return;
+        rt.anchorMin = new Vector2(0f, 0.5f);
+        rt.anchorMax = new Vector2(1f, 0.5f);
+        rt.pivot = new Vector2(0f, 0.5f);
+        rt.offsetMin = new Vector2(_contentLeft, -height * 0.5f);
+        rt.offsetMax = new Vector2(-ScrollbarReserve, height * 0.5f);
     }
 
     private void AlignControlLeft(RectTransform? rt) {
