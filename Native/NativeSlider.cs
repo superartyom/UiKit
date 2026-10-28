@@ -15,6 +15,7 @@ namespace DiceModders.UiKit.Native;
 internal sealed class NativeSlider {
     private const float ValueWidth = 44f;
     private const float ValueGap = 8f;
+    private const float ValuePadding = 10f;
 
     public RectTransform? Rt { get; private set; }
     public Slider? Slider { get; private set; }
@@ -75,6 +76,7 @@ internal sealed class NativeSlider {
             Height = height,
         };
         result.UpdateLabel();
+        result.FitValueColumn();
         return result;
     }
 
@@ -98,6 +100,7 @@ internal sealed class NativeSlider {
 
     public void SetFormat(string? format) {
         _format = string.IsNullOrEmpty(format) ? "0.##" : format;
+        FitValueColumn();
         UpdateLabel();
     }
 
@@ -108,6 +111,7 @@ internal sealed class NativeSlider {
             Slider.minValue = Mathf.Round(Slider.minValue);
             Slider.maxValue = Mathf.Round(Slider.maxValue);
             Slider.SetValueWithoutNotify(Mathf.Round(Slider.value));
+            FitValueColumn();
         }
         UpdateLabel();
     }
@@ -123,7 +127,40 @@ internal sealed class NativeSlider {
         Slider.minValue = min;
         Slider.maxValue = max > min ? max : min + 1f;
         Slider.SetValueWithoutNotify(Mathf.Clamp(Slider.value, Slider.minValue, Slider.maxValue));
+        FitValueColumn();
         UpdateLabel();
+    }
+
+    /// <summary>
+    /// Widens the value column when the text it shows (the range's ends and middle) is wider than the default column,
+    /// so a long value never runs into the track. It never shrinks below the default and is measured when the format
+    /// or range changes, not while dragging, so the track does not move under the handle. Sizes are canvas units, so
+    /// the result follows the game's canvas scaling at any resolution or aspect ratio.
+    /// </summary>
+    private void FitValueColumn() {
+        var label = ValueText;
+        var slider = Slider;
+        if (label == null || slider == null) return;
+
+        float width = ValueWidth;
+        try {
+            float min = slider.minValue, max = slider.maxValue;
+            foreach (float sample in new[] { min, max, (min + max) * 0.5f }) {
+                string text = sample.ToString(_format, CultureInfo.InvariantCulture);
+                width = Mathf.Max(width, label.GetPreferredValues(text).x + ValuePadding);
+            }
+        }
+        catch {
+            width = ValueWidth;   // text measuring can fail while TMP is mid-rebuild; keep the default column
+        }
+
+        var labelRt = label.rectTransform;
+        labelRt.sizeDelta = new Vector2(width, labelRt.sizeDelta.y);
+
+        var sliderRt = slider.GetComponent<RectTransform>();
+        if (sliderRt == null) return;
+        var offset = sliderRt.offsetMin;
+        sliderRt.offsetMin = new Vector2(width + ValueGap, offset.y);
     }
 
     private void OnValueChanged(float value) {

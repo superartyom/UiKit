@@ -19,6 +19,7 @@ internal sealed class SettingsRowHost {
     private const float RowSpacing = 6f;
     private const float InfoRightMargin = 14f;
     private const float ScrollbarReserve = 24f;
+    private const float RowRightInset = ScrollbarReserve + 2f * InfoRightMargin;
     private const float StepButtonWidth = 32f;
     private const float StepValueWidth = 64f;
     private const float DescriptionHeightMinimum = 20f;
@@ -416,7 +417,7 @@ internal sealed class SettingsRowHost {
         rt.anchorMax = new Vector2(1f, 0.5f);
         rt.pivot = new Vector2(0f, 0.5f);
         rt.offsetMin = new Vector2(_contentLeft, -height * 0.5f);
-        rt.offsetMax = new Vector2(-(ScrollbarReserve + 2f * InfoRightMargin), height * 0.5f);
+        rt.offsetMax = new Vector2(-RowRightInset, height * 0.5f);
     }
 
     private void AlignControlLeft(RectTransform? rt) {
@@ -428,8 +429,22 @@ internal sealed class SettingsRowHost {
 
     private float AvailableWidth(RectTransform? content) {
         float width = content != null ? content.rect.width : 0f;
-        if (width <= 1f) width = ColumnWidth - _contentLeft;
-        return Mathf.Max(80f, width - _contentLeft);
+        if (width <= 1f) width = PrefabContentWidth();
+        if (width <= 1f) width = ColumnWidth;
+        return Mathf.Max(80f, width - _contentLeft - RowRightInset);
+    }
+
+    /// <summary>
+    /// The content width the game's own entry prefab asks for (300 in the lobby box, 500 on the other pages). A row has no
+    /// real width until layout has run, and the holder's full width is wrong because the label column takes space first.
+    /// </summary>
+    private float PrefabContentWidth() {
+        var holder = EntryPrefab != null ? EntryPrefab.contentHolder : null;
+        if (holder == null) return 0f;
+
+        var layout = holder.GetComponent<LayoutElement>();
+        float width = layout != null ? Mathf.Max(layout.preferredWidth, layout.minWidth) : 0f;
+        return width > 1f ? width : holder.rect.width;
     }
 
     private static void AddLabelGap(GameObject entryGo) {
