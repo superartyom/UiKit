@@ -27,6 +27,7 @@ internal sealed class NativeSlider {
     private Action<float>? _changed;
     private UnityAction<float>? _unity;
     private string _format = "0.##";
+    private float _handleLeft;    // how far the handle sticks out past the track's left end (the value column moves the left edge)
 
     private NativeSlider() { }
 
@@ -67,13 +68,15 @@ internal sealed class NativeSlider {
         slider.minValue = min;
         slider.maxValue = max > min ? max : min + 1f;
         slider.SetValueWithoutNotify(Mathf.Clamp(value, slider.minValue, slider.maxValue));
-        LayoutParts(label, slider);
+        HandleOverhang(slider, out float handleLeft, out float handleRight);
+        LayoutParts(label, slider, handleLeft, handleRight);
 
         var result = new NativeSlider {
             Rt = rt,
             Slider = slider,
             ValueText = label,
             Height = height,
+            _handleLeft = handleLeft,
         };
         result.UpdateLabel();
         result.FitValueColumn();
@@ -160,7 +163,31 @@ internal sealed class NativeSlider {
         var sliderRt = slider.GetComponent<RectTransform>();
         if (sliderRt == null) return;
         var offset = sliderRt.offsetMin;
-        sliderRt.offsetMin = new Vector2(width + ValueGap, offset.y);
+        sliderRt.offsetMin = new Vector2(width + ValueGap + _handleLeft, offset.y);
+    }
+
+    /// <summary>
+    /// The game's slider lets the handle stick out past both ends of the track by about half its width (its handle area is not
+    /// inset). Inside anything that clips (a window body, a scroll view) the handle is then cut off at the minimum or maximum.
+    /// Measures that overhang so the track can be inset by it and the handle always stays inside the control.
+    /// </summary>
+    private static void HandleOverhang(Slider slider, out float left, out float right) {
+        left = right = 0f;
+        try {
+            var handle = slider.handleRect;
+            if (handle == null) return;
+            float width = Mathf.Approximately(handle.anchorMin.x, handle.anchorMax.x) ? handle.sizeDelta.x : handle.rect.width;
+            if (width <= 1f) return;
+            float half = width * 0.5f;
+            var area = handle.parent != null ? handle.parent.GetComponent<RectTransform>() : null;
+            float areaLeft = area != null ? area.offsetMin.x : 0f;     // positive = the handle area is already inset on the left
+            float areaRight = area != null ? -area.offsetMax.x : 0f;   // positive = inset on the right
+            left = Mathf.Max(0f, half - areaLeft);
+            right = Mathf.Max(0f, half - areaRight);
+        }
+        catch {
+            left = right = 0f;   // keep the donor's layout
+        }
     }
 
     private void OnValueChanged(float value) {
@@ -174,7 +201,7 @@ internal sealed class NativeSlider {
     /// The donor prefab overlays its value label on the track. Lay the label out as a fixed column to the left of the
     /// track instead, so the value reads before the slider and long values do not cover the handle.
     /// </summary>
-    private static void LayoutParts(TMP_Text? label, Slider? slider) {
+    private static void LayoutParts(TMP_Text? label, Slider? slider, float handleLeft, float handleRight) {
         if (label != null) {
             var labelRt = label.rectTransform;
             labelRt.anchorMin = labelRt.anchorMax = new Vector2(0f, 0.5f);
@@ -194,8 +221,8 @@ internal sealed class NativeSlider {
         sliderRt.anchorMin = new Vector2(0f, 0.5f);
         sliderRt.anchorMax = new Vector2(1f, 0.5f);
         sliderRt.pivot = new Vector2(0.5f, 0.5f);
-        sliderRt.offsetMin = new Vector2(label != null ? ValueWidth + ValueGap : 0f, -height * 0.5f);
-        sliderRt.offsetMax = new Vector2(0f, height * 0.5f);
+        sliderRt.offsetMin = new Vector2((label != null ? ValueWidth + ValueGap : 0f) + handleLeft, -height * 0.5f);
+        sliderRt.offsetMax = new Vector2(-handleRight, height * 0.5f);
     }
 
     private void UpdateLabel() {

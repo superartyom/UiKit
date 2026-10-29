@@ -62,12 +62,10 @@ internal static class UiFactory {
     public static void ApplyFont(TMP_Text? text, UiTheme? theme) {
         if (text == null || theme == null) return;
 
-        var font = theme.Font;
-        if (font != null) text.font = font;
-
-        var material = theme.FontMaterial;
-        if (material != null) text.fontSharedMaterial = material;
-        else if (font != null) text.fontSharedMaterial = font.material;
+        // Font and material are set together from one checked pair: a material that samples another copy of the font's atlas draws garbage.
+        if (!theme.TryGetFontPair(out var font, out var material) || font == null) return;
+        text.font = font;
+        text.fontSharedMaterial = material != null ? material : font.material;
     }
 
     public static LayoutElement? Layout(RectTransform? rect) {

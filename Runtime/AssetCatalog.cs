@@ -20,6 +20,8 @@ internal sealed class AssetCatalog {
     private bool _scanned;
     private float _nextRescan;
     private TMP_FontAsset? _font;
+    private Material? _fontMaterial;
+    private float _nextFontDonorScan;
 
     public void Invalidate() {
         _sprites.Clear();
@@ -28,6 +30,8 @@ internal sealed class AssetCatalog {
         _scanned = false;
         _nextRescan = 0f;
         _font = null;
+        _fontMaterial = null;
+        _nextFontDonorScan = 0f;
     }
 
     private void Scan() {
@@ -78,22 +82,95 @@ internal sealed class AssetCatalog {
         }
     }
 
-    public TMP_FontAsset? Font {
-        get {
-            if (_font != null) return _font;
+    public TMP_FontAsset? Font => EnsureFontPair() ? _font : null;
 
-            var named = FontAsset("Main-Font-Normal");
-            if (named != null) return _font = named;
+    public Material? FontShadowMaterial => EnsureFontPair() ? _fontMaterial : null;
 
-            var live = FontFromLive();
-            if (live != null) return _font = live;
-
-            try { return _font = TMP_Settings.defaultFontAsset; }
-            catch { return null; }
-        }
+    /// <summary>
+    /// The game's main font and its shadow material, always as a pair. The game's font is dynamic (glyphs are added to its atlas at runtime and
+    /// more atlas pages can be created) and there can be more than one live copy of it. A material that samples a different atlas than the font
+    /// wrote its glyphs into draws garbage, so the pair is checked on every use and resolved again when it no longer matches.
+    /// </summary>
+    public bool TryGetFontPair(out TMP_FontAsset? font, out Material? material) {
+        bool ok = EnsureFontPair();
+        font = ok ? _font : null;
+        material = ok ? _fontMaterial : null;
+        return ok;
     }
 
-    public Material? FontShadowMaterial => Material("Main-Font-Normal-Shadow");
+    private const string FontName = "Main-Font-Normal";
+    private const string FontShadowMaterialName = "Main-Font-Normal-Shadow";
+
+    private bool EnsureFontPair() {
+        if (_font != null && _fontMaterial != null && (_fontMaterial == _font.material || Matches(_font, _fontMaterial))) return true;
+
+        // 1. A live text of the game: whatever the game draws right now is a working pair by definition.
+        if (Time.realtimeSinceStartup >= _nextFontDonorScan) {
+            _nextFontDonorScan = Time.realtimeSinceStartup + 1f;
+            if (PairFromLiveText(out var liveFont, out var liveMaterial)) {
+                _font = liveFont;
+                _fontMaterial = liveMaterial;
+                return true;
+            }
+        }
+
+        // 2. By name: the font asset, and the shadow material that samples that font's atlas.
+        var font = _font != null ? _font : FontAsset(FontName);   // Unity null check: a destroyed font is looked up again
+        if (font == null) {
+            try { font = TMP_Settings.defaultFontAsset; } catch { font = null; }
+        }
+        if (font == null) { _font = null; _fontMaterial = null; return false; }
+
+        _font = font;
+        _fontMaterial = ShadowMaterialFor(font) ?? font.material;   // 3. the font's own material always matches
+        return _fontMaterial != null;
+    }
+
+    private static bool PairFromLiveText(out TMP_FontAsset? font, out Material? material) {
+        font = null;
+        material = null;
+        try {
+            foreach (var text in UnityEngine.Object.FindObjectsOfType<TMP_Text>()) {
+                if (text == null || !text.gameObject.activeInHierarchy || Native.Staging.IsOurs(text.transform)) continue;
+                var f = text.font;
+                var m = text.fontSharedMaterial;
+                if (f == null || m == null || f.name != FontName || !m.name.StartsWith(FontShadowMaterialName, StringComparison.Ordinal)) continue;
+                if (!Matches(f, m)) continue;
+                font = f;
+                material = m;
+                return true;
+            }
+        }
+        catch {
+            // The game's UI may not exist yet; the named lookup is used instead.
+        }
+        return false;
+    }
+
+    private static Material? ShadowMaterialFor(TMP_FontAsset font) {
+        try {
+            foreach (var o in Resources.FindObjectsOfTypeAll(Il2CppType.From(typeof(Material))))
+                if (o?.TryCast<Material>() is { } m && m.name.StartsWith(FontShadowMaterialName, StringComparison.Ordinal) && Matches(font, m))
+                    return m;
+        }
+        catch {
+            // fall back to the font's own material
+        }
+        return null;
+    }
+
+    /// <summary>True when <paramref name="material"/> samples the atlas that <paramref name="font"/> writes its glyphs into.</summary>
+    private static bool Matches(TMP_FontAsset font, Material material) {
+        try {
+            var atlas = font.atlasTexture;
+            if (atlas == null) return material == font.material;
+            var texture = material.HasProperty(ShaderUtilities.ID_MainTex) ? material.GetTexture(ShaderUtilities.ID_MainTex) : material.mainTexture;
+            return texture != null && texture.GetInstanceID() == atlas.GetInstanceID();
+        }
+        catch {
+            return false;
+        }
+    }
 
     public Sprite? PanelSprite => Sprite("Background-3") ?? Sprite("Background-4");
 
@@ -107,19 +184,6 @@ internal sealed class AssetCatalog {
         OrnamentStyle.Classic => Sprite("Ornament-3"),
         _ => null,
     };
-
-    private TMP_FontAsset? FontFromLive() {
-        try {
-            foreach (var text in UnityEngine.Object.FindObjectsOfType<TMP_Text>()) {
-                if (text == null || text.font == null || !text.gameObject.activeInHierarchy) continue;
-                return text.font;
-            }
-        }
-        catch {
-            // The game's UI may not exist yet. The named lookup will try again later.
-        }
-        return null;
-    }
 
     internal enum ButtonVariant { Regular = 1, Selected = 2 }
     internal enum ButtonState { Ready, Hovered, Pressed, Disabled }
