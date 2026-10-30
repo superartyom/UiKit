@@ -49,11 +49,11 @@ public sealed class UiButton : UiElement {
                 }
                 else if (sprite != null) {
                     native = SkinPolicy.TryNative("button", () =>
-                        NativeButton.CreateIcon(runtime.Templates, parent.Root, "DM IconButton", sprite, onClick, tooltip));
+                        NativeButton.CreateIcon(runtime.Templates, parent.Root, "DM IconButton", sprite, onClick, null));
                 }
                 else {
                     native = SkinPolicy.TryNative("button", () =>
-                        NativeButton.CreateLabel(runtime.Templates, parent.Root, "DM IconButton", "?", 16f, onClick, tooltip));
+                        NativeButton.CreateLabel(runtime.Templates, parent.Root, "DM IconButton", "?", 16f, onClick, null));
                 }
 
                 if (native != null) {
@@ -62,7 +62,7 @@ public sealed class UiButton : UiElement {
                         native.Destroy();
                         return null;
                     }
-                    result._tooltip = tooltip;
+                    if (!string.IsNullOrWhiteSpace(tooltip)) result.Tooltip(tooltip);
                     return result;
                 }
 
@@ -262,7 +262,7 @@ public sealed class UiButton : UiElement {
 
     public UiButton Tooltip(string? text) {
         _tooltip = text;
-        UiGuard.Run("button.tooltip", () => _native?.SetTooltip(text));
+        UiGuard.Run("button.tooltip", () => NativeTooltip.Set(Root != null ? Root.gameObject : null, text));
         return this;
     }
 

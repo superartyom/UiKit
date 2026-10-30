@@ -4,7 +4,7 @@ namespace DiceModders.UiKit;
 /// Where a custom window lives relative to the game's own UI.
 /// </summary>
 public enum Layer {
-    /// <summary>Below the game's UI (a background panel, an ambient overlay).</summary>
+    /// <summary>Below the game's UI (a background panel, an ambient overlay). The game's HUD lies on top and takes the clicks, so windows here are for display only.</summary>
     BehindGame,
 
     /// <summary>

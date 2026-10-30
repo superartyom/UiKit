@@ -194,12 +194,30 @@ internal sealed class DemoController {
                 });
                 buttonRow?.Spacing(10f, 0f);
 
-                body.Text("Toggle, slider and dropdown");
-                body.Toggle("Toggle me", true, value => { if (status != null) status.Value = "Toggle: " + value; });
+                body.Text("Toggle, slider and dropdown (hover them for tooltips)");
+                body.Toggle("Toggle me", true, value => { if (status != null) status.Value = "Toggle: " + value; })
+                    ?.Tooltip("A toggle with the game's own tooltip.");
                 var slider = body.Slider(0f, 100f, 50f, value => { if (status != null) status.Value = "Slider: " + value.ToString("0"); });
                 slider?.Format("0");
+                slider?.Tooltip("Icons work in tooltips: {r.gold} {r.food} {o.population}");
                 body.Dropdown(new[] { "First option", "Second option", "Third option" }, 0,
-                              index => { if (status != null) status.Value = "Dropdown index: " + index; });
+                              index => { if (status != null) status.Value = "Dropdown index: " + index; })
+                    ?.Tooltip("A dropdown tooltip.");
+
+                body.Text("The game's dialog (on the match screen)");
+                body.Row(row => {
+                    row.Button("Ask", () => {
+                        bool shown = scope.Native.Dialogs.Confirm("UiKit demo: do you want 5 {r.gold}? (nothing is given)",
+                            onConfirm: () => { if (status != null) status.Value = "Dialog: confirmed"; },
+                            onCancel: () => { if (status != null) status.Value = "Dialog: cancelled"; });
+                        if (!shown && status != null) status.Value = "Dialog: not available on this screen";
+                    });
+                    row.Button("Info", () => {
+                        bool shown = scope.Native.Dialogs.Info("UiKit demo: an information box with the game's dialog.",
+                            onClose: () => { if (status != null) status.Value = "Dialog: closed"; });
+                        if (!shown && status != null) status.Value = "Dialog: not available on this screen";
+                    });
+                })?.Spacing(10f, 0f);
 
                 body.Text("Grid");
                 body.Grid(3, 90f, 32f, grid => {
@@ -224,6 +242,7 @@ internal sealed class DemoController {
                 var picture = body.Image(Texture2D.whiteTexture);
                 picture?.Height(90f).FillWidth();
                 picture?.KeepAspect(false);   // a square texture would otherwise stay square and not fill the width
+                picture?.Tooltip("An image: move the mouse or the wheel over it.");
                 picture?.Tint(new Color(0.35f, 0.55f, 0.9f, 1f)).UvRect(new Rect(0f, 0f, 1f, 1f));
                 picture?.OnPointer(e => {
                     if (status != null && e.Kind == UiPointerKind.Move)
